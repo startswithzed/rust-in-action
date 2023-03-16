@@ -1,0 +1,10 @@
+[package]
+name = "particle_generator"
+version = "0.1.0"
+authors = ["Zaid <iamzaidsheikh@gmail.com>"]
+edition = "2021"
+
+[dependencies]
+piston_window = "0.117"
+piston2d-graphics = "0.39"
+rand = "0.8"
