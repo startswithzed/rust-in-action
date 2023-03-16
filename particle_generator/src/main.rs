@@ -83,6 +83,73 @@ impl Particle {
     }
 }
 
+impl World {
+    fn new(width: f64, height: f64) -> World {
+        World {
+            current_turn: 0,
+            // Uses Box<Particle> rather than Particle to incur an extra memory allocation when every particle is created
+            particles: Vec::<Box<Particle>>::new(),
+            height,
+            width,
+            rng: thread_rng(),
+        }
+    }
+
+    fn add_shapes(&mut self, n: i32) {
+        for _ in 0..n.abs() {
+            let particle = Particle::new(&self); // particle variable is stored as local variable on stack
+            // takes ownership of particle
+            // moves its data to heap
+            // creates reference to that data on the stack
+            let boxed_particle = Box::new(particle);
+            self.particles.push(boxed_particle);
+        }
+    }
+
+    fn remove_shapes(&mut self, n: i32) {
+        for _ in 0..n.abs() {
+            let mut to_delete = None;
+            // get iterator that returns
+            let particle_iter = self.particles
+                .iter()
+                .enumerate();
+
+            // removes the first particle that's invisible
+            for (i, particle) in particle_iter {
+                if particle.color[3] < 0.02 {
+                    to_delete = Some(i);
+                }
+                break;
+            }
+
+            // if there are no invisible particles then it removes the oldest particle
+            if let Some(i) = to_delete {
+                self.particles.remove(i);
+            } else {
+                self.particles.remove(0);
+            };
+        }
+    }
+
+    fn update(&mut self) {
+        let  n = self.rng.gen_range(-3..=3);
+
+        if n > 0 {
+            self.add_shapes(n);
+        } else {
+            self.remove_shapes(n);
+        }
+
+        self.particles.shrink_to_fit();
+
+        for shape in &mut self.particles {
+            shape.update();
+        }
+
+        self.current_turn += 1;
+    }
+}
+
 fn main() {
-    println!("Hello, world!");
+
 }
