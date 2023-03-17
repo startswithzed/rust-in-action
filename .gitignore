@@ -1,0 +1,9 @@
+# IDEs
+.idea
+.vscode
+
+# jupyter notebook checkpoints
+./notebooks/.ipynb_checkpoints
+
+# targets
+./particle_generator/target
