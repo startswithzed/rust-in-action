@@ -1,0 +1,13 @@
+[package]
+name = "file_format_explorer"
+version = "0.1.0"
+authors = ["Zaid <iamzaidsheikh@gmail.com>"]
+edition = "2021"
+
+[dependencies]
+
+bincode = "1"
+serde = "1"
+serde_cbor = "0.8"
+serde_derive = "1"
+serde_json = "1"
