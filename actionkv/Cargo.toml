@@ -1,0 +1,17 @@
+[package]
+name = "actionkv"
+version = "0.1.0"
+authors = ["Zaid <iamzaidsheikh@gmail.com>"]
+edition = "2021"
+
+[dependencies]
+byteorder = "1.2"
+crc = "1.7"
+
+[lib]
+name = "libactionkv"
+path = "src/lib.rs"
+
+[[bin]]
+name = "akv_mem"
+path = "src/akv_mem.rs"
