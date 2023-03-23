@@ -168,6 +168,54 @@ impl ActionKV {
         Ok(Some(kv.value))
     }
 
+    /// Searches for the first occurrence of a key in the ActionKV store.
+    ///
+    /// # Arguments
+    ///
+    /// * `target` - The target key to search for in the ActionKV store.
+    ///
+    /// # Returns
+    ///
+    /// An `io::Result` containing an optional tuple of a `u64` representing the position of the
+    /// record in the file and a `ByteString` representing the value of the record, if found. If the
+    /// `target` key is not found, the result is `Ok(None)`.
+    ///
+    /// # Errors
+    ///
+    /// This function returns an `Err` result if an IO error occurs during the search.
+    pub fn find(&mut self, target: &ByteStr) -> io::Result<Option<(u64, ByteString)>> {
+        let mut f = BufReader::new(&mut self.f);
+
+        let mut found: Option<(u64, ByteString)> = None;
+
+        loop {
+            let position = f.seek(SeekFrom::Current(0))?;
+
+            let maybe_kv = ActionKV::process_record(&mut f);
+            let kv = match maybe_kv {
+                Ok(kv) => kv,
+                Err(err) => {
+                    match err.kind() {
+                        io::ErrorKind::UnexpectedEof => {
+                            break;
+                        }
+                        _ => return Err(err)    
+                    }
+                }
+            };
+
+            if kv.key == target {
+                found = Some((position, kv.value));
+            }
+
+            // important to keep looping until the end of the file,
+            // in case the key has been overwritten
+        }
+
+        Ok(found)
+    }
+    
+
     /// Inserts a key-value pair into a file, ignoring the index. 
     ///
     /// # Arguments
@@ -224,5 +272,42 @@ impl ActionKV {
         self.index.insert(key.to_vec(), position); // key.to_vec() converts the &ByteStr to a ByteString
 
         Ok(())
+    }
+
+    /// Updates the value of an existing key in the `HashMap`, or inserts a new key-value
+    /// pair if the key does not already exist.
+    ///
+    /// This function is marked `inline` to indicate that it should be optimized for
+    /// performance by the compiler.
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - A reference to a `ByteStr` representing the key to update or insert.
+    /// * `value` - A reference to a `ByteStr` representing the new value for the key.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying `HashMap` is unable to allocate memory or write to the disk, this
+    /// function will return an `io::Result` indicating the specific error encountered.
+    ///
+    #[inline]
+    pub fn update(&mut self, key: &ByteStr, value: &ByteStr) -> io::Result<()> {
+        self.insert(key, value)
+    }
+
+    /// Removes a key-value pair from the `HashMap` corresponding to the given key.
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - A reference to a `ByteStr` representing the key to remove.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying `HashMap` is unable to allocate memory or write to the disk, this
+    /// function will return an `io::Result` indicating the specific error encountered.
+    ///
+    #[inline]
+    pub fn delete(&mut self, key: &ByteStr) -> io::Result<()> {
+        self.insert(key, b"")
     }
 }
