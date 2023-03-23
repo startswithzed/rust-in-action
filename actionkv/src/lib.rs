@@ -125,6 +125,49 @@ impl ActionKV {
         Ok(())
     }
 
+    /// Reads a key-value pair from the file at the specified byte offset position 
+    /// and returns it as a KeyValuePair.
+    ///
+    /// # Arguments
+    ///
+    /// * position - An unsigned 64-bit integer representing the byte offset in the file where the key-value pair is stored.
+    ///
+    /// # Returns
+    ///
+    /// An io::Result containing the key-value pair stored at the specified byte offset position if the operation was successful.
+    pub fn get_at(&mut self, position: u64) -> io::Result<KeyValuePair> {
+        let mut f = BufReader::new(&mut self.f);
+        f.seek(SeekFrom::Start(position))?; // seek to position
+        let kv = ActionKV::process_record(&mut f)?;
+
+        Ok(kv)
+    }
+
+    /// Retrieves a value from the database given a key.
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - A reference to the key that the value is associated with.
+    ///
+    /// # Returns
+    ///
+    /// If the key exists in the database, returns `Ok(Some(ByteString))`, where `ByteString` is the value associated with the key.
+    ///
+    /// If the key does not exist in the database, returns `Ok(None)`.
+    ///
+    /// If there is an I/O error, returns `Err(io::Error)`.
+    ///
+    pub fn get(&mut self, key: &ByteStr) -> io::Result<Option<ByteString>> {
+        let position = match self.index.get(key) {
+            None => return Ok(None),
+            Some(position) => *position,
+        };
+
+        let kv = self.get_at(position)?;
+
+        Ok(Some(kv.value))
+    }
+
     /// Inserts a key-value pair into a file, ignoring the index. 
     ///
     /// # Arguments
