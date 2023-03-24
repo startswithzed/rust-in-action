@@ -9,6 +9,7 @@ byteorder = "1.2"
 crc = "1.7"
 serde = "1"
 serde_derive = "1"
+bincode = "1"
 
 [lib]
 name = "libactionkv"
@@ -17,3 +18,7 @@ path = "src/lib.rs"
 [[bin]]
 name = "akv_mem"
 path = "src/akv_mem.rs"
+
+[[bin]]
+name = "akv_disk"
+path = "src/akv_disk.rs"
