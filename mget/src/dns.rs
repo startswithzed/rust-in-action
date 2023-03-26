@@ -6,7 +6,6 @@ use trust_dns::op::{Message, MessageType, OpCode, Query};
 use trust_dns::proto::error::ProtoError;
 use trust_dns::rr::domain::Name;
 use trust_dns::rr::record_type::RecordType;
-use trust_dns::rr::resource;
 use trust_dns::serialize::binary::*;
 
 /// Generate a 16 bit integer message id
