@@ -20,14 +20,14 @@ impl Clock {
 
     #[cfg(windows)]
     fn set<Tz: TimeZone>(t: DateTime<Tz>) -> () {
-        use chrono::Weekday;
+        use chrono::{Weekday, Datelike, Timelike};
         use kernel32::SetSystemTime;
         use winapi::{SYSTEMTIME, WORD};
 
         let t = t.with_timezone(&Local);
 
         let mut systime: SYSTEMTIME = unsafe {
-            zeroed();
+            zeroed()
         };
 
         let dow = match t.weekday() {
