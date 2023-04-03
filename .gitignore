@@ -15,3 +15,4 @@ resolve/target/
 macgen/target/
 mget/target/
 clock/target/
+render-hex/target/
