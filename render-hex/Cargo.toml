@@ -5,4 +5,5 @@ authors = ["Zaid <startswithzed@gmail.com>"]
 edition = "2021"
 
 [dependencies]
+rayon = "1"
 svg = "0.6"
