@@ -4,8 +4,9 @@
 /// Any stream of valid Base 16 bytes will generate a unique image in SVG format.
 /// Example run cargo run -- $(echo 'startswithzed' | sha1sum | cut -f1 -d ' ')
 use std::env;
+use std::thread;
 
-use rayon::prelude::*;
+use crossbeam::channel::unbounded;
 use svg::node::element::path::{Command, Data, Position};
 use svg::node::element::{Path, Rectangle};
 use svg::Document;
@@ -39,6 +40,12 @@ enum Operation {
     TurnRight,
     Home,
     Noop(u8), // To handle illegal input we retain the illegal byte
+}
+
+// Type for messages we want to send
+enum Work {
+    Task((usize, u8)), // usize indicates position of the processes byte
+    Finished,          // this message shuts down worker threads
 }
 
 #[derive(Debug)]
@@ -110,22 +117,57 @@ impl Artist {
 }
 
 /// Convert hexadecimal digits to instructions for the virtual pen.
-/// It uses `rayon` to employ multiple threads to process the input faster.
+fn parse_byte(byte: u8) -> Operation {
+    match byte {
+        b'0' => Home,
+        b'1'..=b'9' => {
+            let distance = (byte - 0x30) as isize;
+            Forward(distance * (HEIGHT / 10))
+        }
+        b'a' | b'b' | b'c' => TurnLeft, // Cam add more instructions here to create elaaborate diagrams
+        b'd' | b'e' | b'f' => TurnRight,
+        _ => Noop(byte), // Incase there are any illegal characters in the input stream
+    }
+}
+
 fn parse(input: &str) -> Vec<Operation> {
-    input
-        .as_bytes()
-        .par_iter()
-        .map(|byte| match byte {
-            b'0' => Home,
-            b'1'..=b'9' => {
-                let distance = (byte - 0x30) as isize;
-                Forward(distance * (HEIGHT / 10))
-            }
-            b'a' | b'b' | b'c' => TurnLeft, // Cam add more instructions here to create elaaborate diagrams
-            b'd' | b'e' | b'f' => TurnRight,
-            _ => Noop(*byte), // Incase there are any illegal characters in the input stream
-        })
-        .collect()
+    let n_threads = 2;
+    let (todo_tx, todo_rx) = unbounded();
+    let (results_tx, results_rx) = unbounded(); // channel for decoded instructions to be returned
+    let mut n_bytes = 0;
+
+    for (i, byte) in input.bytes().enumerate() {
+        todo_tx.send(Work::Task((i, byte))).unwrap(); // add work to task queue
+        n_bytes += 1; // keep track of the number of tasks
+    }
+
+    for _ in 0..n_threads {
+        todo_tx.send(Work::Finished).unwrap();
+    }
+
+    for _ in 0..n_threads {
+        let todo = todo_rx.clone(); // cloned channels can be shared between threads
+        let results = results_tx.clone();
+
+        thread::spawn(move || loop {
+            let task = todo.recv();
+            let result = match task {
+                Err(_) => break,
+                Ok(Work::Finished) => break,
+                Ok(Work::Task((i, byte))) => (i, parse_byte(byte)),
+            };
+            results.send(result).unwrap();
+        });
+    }
+
+    let mut ops = vec![Noop(0); n_bytes];
+
+    for _ in 0..n_bytes {
+        let (i, op) = results_rx.recv().unwrap();
+        ops[i] = op;
+    }
+
+    ops
 }
 
 fn convert(operations: &Vec<Operation>) -> Vec<Command> {
