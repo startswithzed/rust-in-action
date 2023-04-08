@@ -5,6 +5,7 @@
 /// Example run cargo run -- $(echo 'startswithzed' | sha1sum | cut -f1 -d ' ')
 use std::env;
 
+use rayon::prelude::*;
 use svg::node::element::path::{Command, Data, Position};
 use svg::node::element::{Path, Rectangle};
 use svg::Document;
@@ -109,11 +110,12 @@ impl Artist {
 }
 
 /// Convert hexadecimal digits to instructions for the virtual pen.
+/// It uses `rayon` to employ multiple threads to process the input faster.
 fn parse(input: &str) -> Vec<Operation> {
-    let mut steps = Vec::<Operation>::new();
-
-    for byte in input.bytes() {
-        let step = match byte {
+    input
+        .as_bytes()
+        .par_iter()
+        .map(|byte| match byte {
             b'0' => Home,
             b'1'..=b'9' => {
                 let distance = (byte - 0x30) as isize;
@@ -121,11 +123,9 @@ fn parse(input: &str) -> Vec<Operation> {
             }
             b'a' | b'b' | b'c' => TurnLeft, // Cam add more instructions here to create elaaborate diagrams
             b'd' | b'e' | b'f' => TurnRight,
-            _ => Noop(byte), // Incase there are any illegal characters in the input stream
-        };
-        steps.push(step);
-    }
-    steps
+            _ => Noop(*byte), // Incase there are any illegal characters in the input stream
+        })
+        .collect()
 }
 
 fn convert(operations: &Vec<Operation>) -> Vec<Command> {
